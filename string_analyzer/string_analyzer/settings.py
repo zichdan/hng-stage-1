@@ -25,7 +25,7 @@ SECRET_KEY = env("SECRET_KEY", default='django-insecure-b*tuoe%^o+=^35$0fufrm=oa
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Get DEBUG from environment variable
-DEBUG = env.bool("DEBUG", default=True) # Default to True for local, set to False in .env for production
+DEBUG = env.bool("DEBUG", default=False) # Default to True for local, set to False in .env for production
 
 
 # Site URL
@@ -63,6 +63,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Whitenoise Middleware - serves static files in production.
+    # Should be placed right after the security middleware.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -144,7 +148,71 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+
+# ... at the bottom of the file, near STATIC_URL
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Add this line
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+
+
+
+# LOGGING CONFIGURATION
+# This setup provides detailed logging to the console.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    # Formatters define the layout of your log messages
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    # Handlers determine what happens to the log messages (e.g., print to console, save to file)
+    'handlers': {
+        'console': {
+            'level': 'DEBUG', # Capture all levels of logs from DEBUG upwards
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple', # Use the 'simple' formatter for console output
+        },
+        # You could add a file handler here to log to a file
+        # 'file': {
+        #     'level': 'INFO',
+        #     'class': 'logging.FileHandler',
+        #     'filename': 'debug.log',
+        #     'formatter': 'verbose',
+        # },
+    },
+    # Loggers are the entry point to the logging system
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO', # Log Django's own messages at INFO level
+            'propagate': True,
+        },
+        'profile_api': { # A specific logger for our app
+            'handlers': ['console'],
+            'level': 'DEBUG', # Log our app's messages at DEBUG level
+            'propagate': False, # Don't pass these messages to the root logger
+        },
+    },
+}
+
+
+
+
+
+
+
