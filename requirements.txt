@@ -5,7 +5,6 @@ django-cors-headers==4.9.0
 django-filter==25.2
 djangorestframework==3.16.1
 drf-yasg==1.21.11
-environ==1.0
 environs==14.3.0
 gunicorn==23.0.0
 inflection==0.5.1
