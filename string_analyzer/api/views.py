@@ -18,34 +18,53 @@ class StringViewSet(viewsets.ViewSet):
     # Use the raw string value as the lookup field for retrieve/delete
     lookup_field = 'value'
 
+
+    # api/views.py -> inside the StringViewSet class
+
     def create(self, request):
         """POST /strings: Analyzes and stores a new string."""
+        # 1. Check for missing 'value' field for a 400 Bad Request
+        if 'value' not in request.data:
+            return Response({"error": "Missing 'value' field"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. Check for invalid data type for a 422 Unprocessable Entity
+        if not isinstance(request.data['value'], str):
+            return Response({"error": "Invalid data type for 'value', must be a string"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
         serializer = StringInputSerializer(data=request.data)
+        # This validation is now a final check
         if not serializer.is_valid():
-            # Handles missing 'value' (400) and wrong data type (422)
-            error_key = next(iter(serializer.errors))
-            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY if 'value' in request.data else status.HTTP_400_BAD_REQUEST
-            return Response(serializer.errors, status=status_code)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         value = serializer.validated_data['value']
         
         try:
             properties = analyze_string_value(value)
-            instance = AnalyzedString.objects.create(
-                id=properties['sha256_hash'],
+            
+            # Use get_or_create to handle duplicate check more cleanly
+            instance, created = AnalyzedString.objects.get_or_create(
                 value=value,
-                length=properties['length'],
-                is_palindrome=properties['is_palindrome'],
-                unique_characters=properties['unique_characters'],
-                word_count=properties['word_count'],
-                character_frequency_map=properties['character_frequency_map']
+                defaults={
+                    'id': properties['sha256_hash'],
+                    'length': properties['length'],
+                    'is_palindrome': properties['is_palindrome'],
+                    'unique_characters': properties['unique_characters'],
+                    'word_count': properties['word_count'],
+                    'character_frequency_map': properties['character_frequency_map']
+                }
             )
+
+            # If the object was not created, it means it already existed.
+            if not created:
+                return Response({"error": "String already exists in the system"}, status=status.HTTP_409_CONFLICT)
+            
             output_serializer = AnalyzedStringSerializer(instance)
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            # This triggers if the string 'value' is not unique (already exists).
-            return Response({"error": "String already exists in the system"}, status=status.HTTP_409_CONFLICT)
-    
+
+        except Exception as e:
+            # General catch-all for any other unexpected server errors
+            return Response({"error": f"An internal server error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def retrieve(self, request, value=None):
         """GET /strings/{string_value}: Retrieves a specific analyzed string."""
         instance = get_object_or_404(AnalyzedString, value=value)

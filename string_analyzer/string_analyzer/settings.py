@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import timedelta
 from environs import Env
 import os
+import dj_database_url
 
 import sys
 import logging.config # For logging
@@ -25,7 +26,7 @@ SECRET_KEY = env("SECRET_KEY", default='django-insecure-b*tuoe%^o+=^35$0fufrm=oa
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Get DEBUG from environment variable
-DEBUG = env.bool("DEBUG", default=False) # Default to True for local, set to False in .env for production
+DEBUG = env.bool("DEBUG", default=True) # Default to True for local, set to False in .env for production
 
 
 # Site URL
@@ -105,12 +106,12 @@ WSGI_APPLICATION = 'string_analyzer.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # Use the DATABASE_URL from the environment, fall back to SQLite for local dev
+        default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3'),
+        conn_max_age=600
+    )
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
